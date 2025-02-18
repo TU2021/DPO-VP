@@ -64,6 +64,7 @@ In the table, all models are fine-tuned based on the Qwen2.5-Math-7B base model.
 
 
 ***Accuracy and Token Length***
+
 We plotted the accuracy of the iterative process across various datasets against the average token length of the datasets. We observed a consistent increase in accuracy, while the token length for inference did not exhibit an initial rise followed by a decline; instead, it remained relatively stable within a consistent range.
 
 ![Alt text](source/plot_acc_length.png "optional title")
@@ -81,6 +82,7 @@ When comparing several different models, the output lengths were approximately e
 
 
 ***Aha Moment***
+
 We did not observe a significant Aha Moment, which aligns with the findings of [PURE](https://github.com/CJReinforce/PURE).  We observed that even when using CoT prompts, Qwen-math still attempts to solve problems using Python code in many instances, although it does not actually execute the code. Additionally, we noticed a re-evaluation phenomenon in the model's responses, such as "Let's re-evaluate ..."; this was already evident in Qwen2.5-math-7B-base, leading us to conclude that DPO does not enable the base model to spontaneously develop self-evaluation capabilities. Instead, it optimizes the model through reward signals to encourage more self-evaluation. We plotted the average number of occurrences of the word "Let's" in each response during the iterative process to measure the model's reflective ability. Compared to the base model, the iterative models showed an increase in reflective ability.
 
 ![Alt text](source/plot_lets.png "optional title")
