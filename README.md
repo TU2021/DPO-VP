@@ -1,36 +1,38 @@
 <div align="center">
 
-# Improving Math reasoning through Self-improvement and Direct Preference Optimization with Verifiable Pairs
+# Improving Math Reasoning through Self-improvement and Direct Preference Optimization with Verifiable Pairs
 
 
 
 </div>
 
-**TL;DR:** 我们仅通过 Verifiable Reward 筛选 + DPO 的自提升训练范式以提高 LLM 的数学推理能力。最后在 Qwen-2.5-Math-7B 模型上展现出与当前基于 RL 的方法相近的数学推理能力。整个框架无需模型并行，因此可以只在1张A800上复现。
+**TL;DR:** We enhance the mathematical reasoning ability of LLMs solely through Verifiable Reward filtering and the self-improvement training paradigm of DPO. The final model, Qwen-2.5-Math-7B, demonstrates mathematical reasoning capabilities comparable to current RL-based approaches. The entire framework does not require model parallelism, enabling replication on a single A800 GPU.
 
 ## 🎉 News:
 
-- [2025/02/18] 
+- [2025/02/18] We released the technical report, code, and model.
 
 ## 📖 Introduction
 
-2025年以来，通过基于可验证奖励 (Verifiable Reward, VR) 的强化学习微调 (Reinforcement learning Fine-Tuning, ReFT) 被证明可以使能力足够强的基础模型涌现出卓越的数学推理能力。如[DeepSeek R1](https://github.com/deepseek-ai/DeepSeek-R1), [SimpleRL-Zero](https://github.com/hkust-nlp/simpleRL-reason) 和 [PURE](https://github.com/CJReinforce/PURE) 等。这些工作基于 PPO 或 GRPO 等RL算法，对计算资源的需求仍然较为苛刻，少则需要8块A100，多则需要几十块。我们的目的是在更加有限的计算资源下，尝试从同样的基础模型开始，不借助外部蒸馏提升 LLM 的数学推理能力。
+Since 2025, reinforcement learning fine-tuning (ReFT) based on Verifiable Reward (VR) has been shown to significantly enhance the mathematical reasoning abilities of sufficiently capable base models. Examples include works like [DeepSeek R1](https://github.com/deepseek-ai/DeepSeek-R1), [SimpleRL-Zero](https://github.com/hkust-nlp/simpleRL-reason), and [PURE](https://github.com/CJReinforce/PURE). These methods, based on RL algorithms like PPO or GRPO, still require substantial computational resources, ranging from 8 to dozens of A100 GPUs. Our goal is to enhance the mathematical reasoning abilities of LLMs using the same base models, but with more limited computational resources and without relying on external distillation.
 
-本质上，以直接偏好优化 (Direct Preference Optimization, [DPO](https://arxiv.org/abs/2305.18290)) 为代表的工作与 RL 的优化目标相同，目的在于优化 LLM 的生成分布，使其接近给定数据集中的接受答案，远离拒绝答案。在 [DeepSeek R1](https://github.com/deepseek-ai/DeepSeek-R1) 中，我们观察到 Verifiable Reward 是一个 0/1 的离散分布，代表模型的输出是否符合预定义的正确性标准。 这与 DPO 的设计初衷类似：符合预定义的正确样本归类为正类，不符合的归类为负类，进而构造 Verifiable Pairs 优化模型。
+Essentially, works like Direct Preference Optimization ([DPO](https://arxiv.org/abs/2305.18290)) align with the optimization objectives of RL, aiming to refine the generation distribution of LLMs to favor accepted answers and reject incorrect ones within a given dataset. In [DeepSeek R1](https://github.com/deepseek-ai/DeepSeek-R1), we observed that Verifiable Reward is a 0/1 discrete variable, representing whether the output meets predefined correctness criteria. This is similar to the original design of DPO, where correct samples are classified as positive and incorrect ones as negative, thereby constructing Verifiable Pairs to optimize the model.
 
-由于 DPO 完全是离线优化算法，无法满足模型自提升的需求。我们参考 [Iterative DPO](https://arxiv.org/abs/2305.18290) 的思想，基于 Qwen2.5-Math-7B 基础模型，在 8K 的困难 MATH 数据集 (与 [SimpleRL-Zero](https://github.com/hkust-nlp/simpleRL-reason) 和 [PURE](https://github.com/CJReinforce/PURE) 相同) 的 prompt 上进行采样-筛选-构造偏好数据集自提升的流程，具体地：
+However, DPO is a purely offline optimization algorithm and does not satisfy the need for self-improvement in models. Drawing on the ideas from [Iterative DPO](https://arxiv.org/abs/2305.18290), we propose a self-improvement process based on the Qwen2.5-Math-7B base model. In this process, we perform sampling-filtering to construct preference datasets for self-improvement using a challenging 8K MATH dataset (same as [SimpleRL-Zero](https://github.com/hkust-nlp/simpleRL-reason) and [PURE](https://github.com/CJReinforce/PURE)), as outlined below:
 
-- 每轮采样中对每个 prompt 采 8 个样本，并从8个样本中筛选出一对样本构建当前的偏好数据集：
-  - 给每个回答打分：参考 VR 打分方式，若回答正确且符合格式，则打 1 分；若回答错误但符合格式，打 0 分；若回答不符合格式，则不论对错，打 -1 分；
-  - 正样本：若回答候选中有得分 1 的样本，则选其中 token 长度最长的样本为正样本；若没有得分 1 的样本，但有得分 0 的样本，则选取长度最长的 0 分样本为正样本；否则跳过该问题；
-  - 负样本：若回答候选有得分为 -1 的样本，则随机选取一个作为负样本；若没有得分 -1 的样本，但有得分 0 的样本，则随机选取一个为负样本；否则跳过该问题；
-- 构建完数据集后进行 1 个 epoch 的 DPO 迭代，训练出新的模型，再基于新的模型重复以上过程。
+- In each round of sampling, we select 8 samples for each prompt and filter out one pair of samples to construct the current preference dataset:
+  - *Score each answer:* Following the VR scoring method, assign 1 if the answer is correct and formatted, 0 if incorrect but formatted, and -1 if the answer is not in the correct format regardless of correctness.
+  - *Positive sample:* If there is a sample with a score of 1, select the one with the longest token length as the positive sample. If there is no score of 1 but there are samples with a score of 0, select the longest 0-score sample as the positive sample. Otherwise, skip the prompt.
+  - *Negative sample:* If there is a sample with a score of -1, randomly select one as the negative sample. If there are no -1 samples but there are 0-score samples, randomly select one as the negative sample. Otherwise, skip the prompt.
+- After constructing the dataset, perform one epoch of DPO iteration to train the model, and then repeat the process based on the newly trained model.
 
-经过调试，我们一共进行 6 轮 DPO 迭代，并借鉴逐步升温采样的思想提高数据的多样性：其中，前 3 轮，我们设置温度系数 Tempurature = 0.7 进行采样；4 - 5 轮，设置Tempurature = 1.0；最后一轮，设置 Tempurature = 1.2。 
+After fine-tuning, we conducted 6 rounds of DPO iterations, incorporating a temperature-based sampling strategy to increase data diversity: In the first 3 rounds, we set the temperature coefficient to 0.7 for sampling; in rounds 4-5, we set it to 1.0; and in the final round, we set it to 1.2.
 
-我们在 4 张 A800 上进行采样与训练；DPO 只做了数据并行操作，理论上可以在 1 张 80G 显卡甚至更低的条件下进行训练。在我们的 4 卡实验中，每轮采样约 2 -2.5 小时，每轮训练约 1 小时。 因此，最终模型大约需要 80 小时 A800 机时，在单卡情况下需要约 3 天可复现。
+### Training Costs
+Sampling and training were performed on 4 A800 GPUs, with DPO implementing only data parallelism. In theory, training can be done on a single 80GB GPU or even lower configurations. In our 4-GPU experiment, each round of sampling took approximately 2-2.5 hours, and each round of training took about 1 hour. Therefore, the entire process took about 80 hours on A800, and on a single GPU, it would take approximately 3 days to replicate.
 
-最终的结果在五个数学推理的 benchmark 中取得 48.2 的均分，与 Qwen2.5-Math-7B-Instruct 和其他在同等数据条件下使用 RL 的方法性能相当。
+### Final Results
+The final model achieved an average score of 48.2 on five mathematical reasoning benchmarks, which is comparable to the performance of Qwen2.5-Math-7B-Instruct and other RL-based methods under similar data conditions.
 
 
 ***All results are in pass@1 accuracy***
@@ -46,7 +48,7 @@
 | **[Qwen2.5-7B-PURE-VR](https://huggingface.co/jinachris/PURE-VR)** *    | 79.8      | 36.8     | 41.9     | 60.0         | 20.0          | 47.7     |
 | **Qwen2.5-7B-DPO-VP**    |   74.8   | 35.3 | 36.9 | 67.5 | 26.7 | 48.2|
 
-表格中，所有的模型都基于 Qwen2.5-Math-7B 的基模微调，加粗的模型代表使用完全相同的 prompts 作自提升的方法调整的模型；* 尾标的结果为我自己评估的结果；^ 尾标的结果由对应模型的技术报告中记载得到。其中 Qwen2.5-7B-Simple-RL-Zero 并未开源其训练好的模型，我们从 Huggingface 上找了一个他人复现的结果作为评估。另外，我们注意到由于 Qwen 官方的评估代码对模型进行切片，在不同数量的卡上进行评估的结果会有微小差异。我们的模型和我们复现的结果均采用 4 张 A800 进行评估。
+In the table, all models are fine-tuned based on the Qwen2.5-Math-7B base model. Bolded models represent those that were adjusted using the self-improvement method with exactly the same prompts. The results with * are from my own evaluation, and the results with ^ are derived from the corresponding model's technical report. Note that Qwen2.5-7B-Simple-RL-Zero has not released its trained model, so we evaluated a reproduced version found on Huggingface. Additionally, we observed that due to Qwen's official evaluation code slicing the model, slight differences may arise when evaluating on different numbers of GPUs. Our model and the reproduced results were both evaluated on 4 A800 GPUs.
 
 ***Data and GPUs comparison of different approaches***
 
@@ -67,14 +69,43 @@
 
 Our code is implemented based on OpenRLHF. Please follow [OpenRLHF's guidance](https://github.com/OpenRLHF/OpenRLHF/tree/main?tab=readme-ov-file#installation) to configure required environments. Then run `pip install -r requirements.txt`
 
-### 
+### Reproduce the Project
+For a training cycle, following the code below, then adjust the tempurature in 1., and start a new collect-train cycle.
+
+```bash
+# 1. collect 8K math data
+bash sh/collect_data.sh
+# 2. make VR pairs dataset for DPO
+bash sh/make_vr_pairs.sh
+# 3. train the dpo model
+bash sh/train_dpo.sh
+# adjust the tempurature in 1., then start a new collect-train cycle.
+```
+
+### Evaluation of Math Reasoning
+We used [Qwen Math's codebase](https://github.com/QwenLM/Qwen2.5-Math/tree/main/evaluation) for evaluation (i.e., pass@1 accuracy). 
+```bash
+bash sh/evaluate_all_bench.sh
+```
 
 
-## 📝 TODO:
-
+## 📝 TODO
+- [ ] Explore more possibilities of long chain data distillation combined with RL/non-RL methods...
 
 
 ## 🎈 Citation
-
+If you find our code useful, we would appreciate it if you could cite our work:
+```bibtex
+@misc{tu2025dpovp,
+  title={Improving Math Reasoning through Self-improvement and Direct Preference Optimization with Verifiable Pairs},
+  author={Songjun Tu},
+  publisher={GitHub},
+  journal={GitHub repository},
+  howpublished={\url{https://github.com/TU2021/DPO-VP}},
+  year={2025}
+}
+```
 
 ## 🌻 Acknowledgement
+We implement our RL algorithm based on [OpenRLHF](https://github.com/OpenRLHF/OpenRLHF). We thank the developers of OpenRLHF and the authors for discussion.
+Thanks to all the teachers and students in the DRL Group of the Institute of Automation, Chinese Academy of Sciences for their help; thanks to [Jie Cheng](https://github.com/CJReinforce) from CASIA and [Wei He](https://github.com/hewei2001) from Fudan University for their advice.
