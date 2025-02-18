@@ -1,6 +1,6 @@
 <div align="center">
 
-# Improving Math Reasoning through Self-improvement and Direct Preference Optimization with Verifiable Pairs
+# Improving Math Reasoning through Direct Preference Optimization with Verifiable Pairs
 
 
 
@@ -10,7 +10,7 @@
 
 ## 🎉 News:
 
-- [2025/02/18] We released the technical report, code, and model.
+- [2025/02/18] We released the simple technical report, code, and [model](https://huggingface.co/SunnyLin/Qwen2.5-7B-DPO-VP).
 
 ## 📖 Introduction
 
