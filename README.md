@@ -9,7 +9,8 @@
 
 ## 🎉 News:
 
-- [2025/02/18] We released the simple technical report, code, and the [Huggingface model](https://huggingface.co/SunnyLin/Qwen2.5-7B-DPO-VP).
+- [2025/03/17] We further incorporated PRM to conduct further self-improvement experiments. For more analysis, see the paper [Enhancing LLM Reasoning with Iterative DPO: A Comprehensive Empirical Investigation](https://arxiv.org/abs/2503.12854).
+- [2025/02/18] We released the code, and the [Huggingface model](https://huggingface.co/SunnyLin/Qwen2.5-7B-DPO-VP).
 
 ## 📖 Introduction
 
@@ -43,11 +44,10 @@ The final model achieved an average score of 48.2 on five mathematical reasoning
 | [rStar-Math-7B](https://arxiv.org/abs/2501.04519) ^       | 78.4      | -     | 47.1     | 47.5         | 26.7          | -     |
 | [Eurus-2-7B-PRIME](https://huggingface.co/PRIME-RL/Eurus-2-7B-PRIME) *        | 74.0      | 39.7     | 35.6     | 57.5         | 23.3          | 46.0     |
 | **[Qwen2.5-7B-Simple-RL-Zero](https://github.com/hkust-nlp/simpleRL-reason)** ^   | 77.2      | 33.5     | 37.6     | 62.5         | 33.3          | 48.8     |
-| **[Qwen2.5-7B-Simple-RL-Zero](https://huggingface.co/Bradley/Qwen-2.5-7B-Simple-RL)** *   | 75.6      | 34.2     | 39.0     | 52.5         | 26.7          | 45.6     |
 | **[Qwen2.5-7B-PURE-VR](https://huggingface.co/jinachris/PURE-VR)** *    | 79.8      | 36.8     | 41.9     | 60.0         | 20.0          | 47.7     |
 | **Qwen2.5-7B-DPO-VP**    |   74.8   | 35.3 | 36.9 | 67.5 | 26.7 | 48.2|
 
-In the table, all models are fine-tuned based on the Qwen2.5-Math-7B base model. Bolded models represent those that were adjusted using the self-improvement method with exactly the same prompts. The results with * are from my own evaluation, and the results with ^ are derived from the corresponding model's technical report. Note that Qwen2.5-7B-Simple-RL-Zero has not released its trained model, so we evaluated a reproduced version found on Huggingface. Additionally, we observed that due to Qwen's official evaluation code slicing the model, slight differences may arise when evaluating on different numbers of GPUs. Our model and the reproduced results were both evaluated on 4 A800 GPUs.
+In the table, all models are fine-tuned based on the Qwen2.5-Math-7B base model. Bolded models represent those that were adjusted using the self-improvement method with exactly the same prompts. The results with * are from my own evaluation, and the results with ^ are derived from the corresponding model's technical report. Additionally, we observed that due to Qwen's official evaluation code slicing the model, slight differences may arise when evaluating on different numbers of GPUs. Our model and the reproduced results were both evaluated on 4 A800 GPUs.
 
 ***Data and GPUs comparison of different approaches***
 
@@ -132,12 +132,10 @@ bash sh/evaluate_all_bench.sh
 ## 🎈 Citation
 If you find our code useful, we would appreciate it if you could cite our work:
 ```bibtex
-@misc{tu2025dpovp,
-  title={Improving Math Reasoning through Direct Preference Optimization with Verifiable Pairs},
-  author={Songjun Tu, Jiahao Lin, Xiangyu Tian, Qichao Zhang* and Dongbin Zhao*},
-  publisher={GitHub},
-  journal={GitHub repository},
-  howpublished={\url{https://github.com/TU2021/DPO-VP}},
+@article{tu2025enhancing,
+  title={Enhancing LLM Reasoning with Iterative DPO: A Comprehensive Empirical Investigation},
+  author={Tu, Songjun and Lin, Jiahao and Tian, Xiangyu and Zhang, Qichao and Li, Linjing and Fu, Yuqian and Xu, Nan and He, Wei and Lan, Xiangyuan and Jiang, Dongmei and others},
+  journal={arXiv preprint arXiv:2503.12854},
   year={2025}
 }
 ```
