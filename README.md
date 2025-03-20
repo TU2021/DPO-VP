@@ -134,7 +134,7 @@ If you find our code useful, we would appreciate it if you could cite our work:
 ```bibtex
 @article{tu2025enhancing,
   title={Enhancing LLM Reasoning with Iterative DPO: A Comprehensive Empirical Investigation},
-  author={Tu, Songjun and Lin, Jiahao and Tian, Xiangyu and Zhang, Qichao and Li, Linjing and Fu, Yuqian and Xu, Nan and He, Wei and Lan, Xiangyuan and Jiang, Dongmei and others},
+  author={Tu, Songjun and Lin, Jiahao and Tian, Xiangyu and Zhang, Qichao and Li, Linjing and Fu, Yuqian and Xu, Nan and He, Wei and Lan, Xiangyuan and Jiang, Dongmei and Zhao, Dongbin},
   journal={arXiv preprint arXiv:2503.12854},
   year={2025}
 }
